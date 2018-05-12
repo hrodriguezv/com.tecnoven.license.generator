@@ -1,0 +1,85 @@
+<project name="generate-license-tool" default="deployment">
+	
+	<!-- name of the output .jar file -->
+	<property name="jar.name" value="license-generator.jar" />
+
+	<!-- base directory for compilation targets -->
+	<property name="build.home" value="${basedir}" />
+
+	<!-- The base directory for all libraries (jar) files -->
+	<property name="lib.home" value="${build.home}/lib" />
+
+	<!-- base directory for distribution target -->  
+	<property name="dist.home" value="${build.home}/dist" />  
+
+	<target name="jar" description="Create jar and MANIFEST.MF">
+
+		<mkdir dir="tmp_classes"/>
+		<!-- create a property containing all .jar files, prefix lib/, and seperated with a space -->
+		<pathconvert property="libs.project" pathsep=" ">
+			<mapper>
+				<chainedmapper>
+					<!-- remove absolute path -->
+					<flattenmapper />
+					<!-- add lib/ prefix -->
+					<globmapper from="*" to="lib/*" />
+				</chainedmapper>
+			</mapper>
+			<path>
+				<!-- lib.home contains all jar files, in several subdirectories -->
+				<fileset dir="${lib.home}">
+					<include name="**/*.jar" />
+				</fileset>
+			</path>
+		</pathconvert>
+
+		<!-- create the jar -->
+		<jar jarfile="${build.home}/${jar.name}" basedir="tmp_classes">
+
+			<!-- define MANIFEST.MF -->
+			<manifest>
+				<attribute name="Built-By" value="Hector Rodriguez, hrodriguezve@gmail.com"/>
+				<attribute name="Main-Class" value="com.tecnoven.license.generator.GenerateLicense"/>
+				<!-- finally, use the magically generated libs path -->
+				<attribute name="Class-Path" value="${libs.project}" />
+			</manifest>
+		</jar>
+	</target>
+
+	<path id="project.classpath">
+		<pathelement location="bin"/>
+	</path>
+
+	<path id="class.path">
+		<fileset dir="${lib.home}" includes="**/*.jar" />
+	</path>
+
+	<target name="clean">
+		<delete file="${build.home}/${jar.name}">
+		</delete>
+		<delete dir="tmp_classes"/>
+	</target>
+
+	<target name="compile">
+		<mkdir dir="tmp_classes"/>
+		<javac srcdir="src" destdir="tmp_classes" classpathref="class.path" deprecation="off" nowarn="true" excludes="Main*.*"/>
+	</target>
+
+	<target name="deployment" depends="clean,compile,dist">
+	</target>
+
+	<target name="dist" depends="jar" description="Create binary distribution">
+		<delete dir="${dist.home}" failonerror="false"/>
+
+		<!-- contains all library dependencies -->
+		<mkdir dir="${dist.home}/lib" />
+		<copy todir="${dist.home}" file="${build.home}/${jar.name}" />
+		<copy todir="${dist.home}/lib" filtering="off">
+
+			<!-- remove the directory hierarchy: lib contains no subdirectories -->
+			<flattenmapper />
+			<fileset dir="${lib.home}" includes="**/*.jar" />
+		</copy>
+	</target>
+
+</project>
